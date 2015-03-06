@@ -64,6 +64,8 @@ def on_identify(message):
 def on_login(loginInfo):
     conn = connectToDB()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    showhide = ""
+    loginMessage = ""
     
     #Just used to check if information is correct.
     print 'login '  + loginInfo['username'] + " " + loginInfo['password']
@@ -82,8 +84,14 @@ def on_login(loginInfo):
         session['id'] = results[0]
         session['username'] = results[1]
         updateRoster()
+        showhide = "hide"
+        loginMessage = "Login was successful"
+        emit('loginCheck', loginMessage, showhide)
         print "Login complete"
     else:
+        loginMessage = "The login information was incorect"
+        showhide = "show"
+        emit('loginCheck', loginMessage, showhide)
         print "The login information was incorrect"
 
 
