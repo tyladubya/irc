@@ -1,5 +1,7 @@
 import os
 import uuid
+import psycopg2
+import psycopg2.extras
 from flask import Flask, session
 from flask.ext.socketio import SocketIO, emit
 
@@ -10,6 +12,14 @@ socketio = SocketIO(app)
 
 messages = [{'text':'test', 'name':'testName'}]
 users = {}
+
+def connectToDB():
+  connectionString = 'dbname=chatroom user=postgres password=beatbox host=localhost'
+  try:
+    return psycopg2.connect(connectionString)
+  except:
+    print("Can't connect to database")
+
 
 def updateRoster():
     names = []
@@ -45,16 +55,36 @@ def new_message(message):
     
 @socketio.on('identify', namespace='/chat')
 def on_identify(message):
-    print 'identify' + message
+    print 'identify ' + message
     users[session['uuid']]={'username':message}
     updateRoster()
 
 
 @socketio.on('login', namespace='/chat')
-def on_login(pw):
-    print 'login '  + pw
-    #users[session['uuid']]={'username':message}
-    #updateRoster()
+def on_login(loginInfo):
+    conn = connectToDB()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    #Just used to check if information is correct.
+    print 'login '  + loginInfo['username'] + " " + loginInfo['password']
+    
+    #sets variables with login information
+    username = loginInfo['username']
+    pw = loginInfo['password']
+    
+    #Setting up the query to see if the login works.
+    query = "SELECT id, username, password FROM users WHERE username = %s AND password = crypt(%s, password)"
+    cur.execute(query, (username, pw))
+    results = cur.fetchone()
+    
+    if results:
+        users[session['uuid']]={'username':username}
+        session['id'] = results[0]
+        session['username'] = results[1]
+        updateRoster()
+        print "Login complete"
+    else:
+        print "The login information was incorrect"
 
 
     
@@ -69,7 +99,7 @@ def on_disconnect():
 def hello_world():
     print 'in hello world'
     return app.send_static_file('index.html')
-    return 'Hello World!'
+    #return 'Hello World!'
 
 @app.route('/js/<path:path>')
 def static_proxy_js(path):
