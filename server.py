@@ -41,7 +41,19 @@ def test_connect():
     
     users[session['uuid']]={'username':'New User'}
     updateRoster()
+    
+    conn = connectToDB()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    query = "SELECT message, username FROM messages join users on (id = user_id)"
+    cur.execute(query)
+    results = cur.fetchall()
 
+    messages = []
+    
+    for result in results:
+        tmp = {'text': result['message'], 'name': result['username']}
+        messages.append(tmp)
 
     for message in messages:
         emit('message', message)
@@ -51,6 +63,21 @@ def new_message(message):
     #tmp = {'text':message, 'name':'testName'}
     tmp = {'text':message, 'name':users[session['uuid']]['username']}
     messages.append(tmp)
+    
+    conn = connectToDB()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    userId = session['id']
+    
+    #Insert new message into database
+    try:
+        query = "INSERT INTO messages (user_id, message) VALUES (%s, %s)"
+        cur.execute(query, (userId, message))
+    except:
+        print("ERROR inserting into messages")
+        
+    conn.commit()
+    
     emit('message', tmp, broadcast=True)
     
 @socketio.on('identify', namespace='/chat')
@@ -74,7 +101,7 @@ def on_login(loginInfo):
     username = loginInfo['username']
     pw = loginInfo['password']
     
-    #Setting up the query to see if the login works.
+    #Login query
     query = "SELECT id, username, password FROM users WHERE username = %s AND password = crypt(%s, password)"
     cur.execute(query, (username, pw))
     results = cur.fetchone()
