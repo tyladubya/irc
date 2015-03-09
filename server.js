@@ -41,7 +41,7 @@ io.on('connection', function (socket) {
 
       if (!text)
         return;
-
+    
       socket.get('name', function (err, name) {
         var data = {
           name: name,
@@ -52,7 +52,7 @@ io.on('connection', function (socket) {
         messages.push(data);
       });
     });
-
+    
     socket.on('identify', function (name) {
       socket.set('name', String(name || 'Anonymous'), function (err) {
         updateRoster();

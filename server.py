@@ -5,6 +5,7 @@ import psycopg2.extras
 from flask import Flask, session
 from flask.ext.socketio import SocketIO, emit
 
+
 app = Flask(__name__, static_url_path='')
 app.config['SECRET_KEY'] = 'secret!'
 
@@ -79,7 +80,33 @@ def new_message(message):
     conn.commit()
     
     emit('message', tmp, broadcast=True)
+
+@socketio.on('search', namespace='/chat')
+def search(searchText):
     
+    conn = connectToDB()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    query = "SELECT message, username FROM messages join users on (id = user_id) AND message LIKE '%%%s%%'"
+    cur.execute(query % searchText)
+    results = cur.fetchall()
+    
+    print "Search Complete"
+    #figure out how to send and display results.
+    
+    searchResults = []
+    
+    for result in results:
+        tmp = {'text': result['message'], 'name': result['username']}
+        searchResults.append(tmp)
+
+    for searchResult in searchResults:
+        emit('searchResult', searchResult)
+    
+    
+    
+    
+
 @socketio.on('identify', namespace='/chat')
 def on_identify(message):
     print 'identify ' + message

@@ -17,7 +17,7 @@ margin-right: 70%;
 /*margin-top: 70px; */
 padding-top: 10px; 
 width: 1200px; 
-height: 400px; 
+height: 450px; 
 position: absolute; 
 /*background: #FFFFFF; */
 background: #E8E8E8;
@@ -28,7 +28,27 @@ visibility: hidden;
 top: 50%;
 left: 50%;
 margin-left: -600px; 
-margin-top: -200px; 
+margin-top: -225px; 
+}
+#popupbox1{
+margin: 0; 
+/*margin-left: 10%; */
+margin-right: 70%; 
+/*margin-top: 70px; */
+padding-top: 10px; 
+width: 1200px; 
+height: 450px; 
+position: absolute; 
+/*background: #FFFFFF; */
+background: #E8E8E8;
+border: solid #909090 2px; 
+z-index: 9; 
+font-family: arial; 
+visibility: hidden;
+top: 50%;
+left: 50%;
+margin-left: -600px; 
+margin-top: -225px; 
 }
 </style>
 <script language="JavaScript" type="text/javascript">
@@ -37,6 +57,14 @@ if(showhide == "show"){
     document.getElementById('popupbox').style.visibility="visible";
 }else if(showhide == "hide"){
     document.getElementById('popupbox').style.visibility="hidden"; 
+}
+}
+
+function searchPopUp(showhide){
+if(showhide == "show"){
+    document.getElementById('popupbox1').style.visibility="visible";
+}else if(showhide == "hide"){
+    document.getElementById('popupbox1').style.visibility="hidden"; 
 }
 }
 
@@ -51,6 +79,8 @@ if(showhide == "show"){
         $scope.roster = [];
         $scope.name = '';
         $scope.text = '';
+        $scope.searchText = '';
+        $scope.searchResults = [];
 
         socket.on('connect', function () {
           console.log('connected');
@@ -60,6 +90,13 @@ if(showhide == "show"){
         socket.on('message', function (msg) {
           console.log(msg);
           $scope.messages.push(msg);
+          $scope.$apply();
+        });
+        
+        //This is like the message function used to append search results to a list. 
+        socket.on('searchResult', function (searchResult) {
+          console.log(searchResult);
+          $scope.searchResults.push(searchResult);
           $scope.$apply();
         });
         
@@ -83,6 +120,24 @@ if(showhide == "show"){
           $scope.$apply();
         });
 
+        // This is used to search.
+        $scope.search = function search() {
+          console.log('Searching for: ', $scope.searchText);
+          socket.emit('search', $scope.searchText);
+          $scope.searchText = '';
+          searchPopUp('show')
+          $scope.$apply();
+        };
+
+        // This is used to get rid of the popup and clear search results.
+        $scope.searchRemove = function searchRemove() {
+          console.log('Clearing search results');
+          searchPopUp('hide')
+          $scope.searchResults = [];
+          $scope.$apply();
+        };
+
+        
         $scope.send = function send() {
           console.log('Sending message:', $scope.text);
           socket.emit('message', $scope.text);
@@ -98,7 +153,7 @@ if(showhide == "show"){
           $scope.name = $scope.name2;
           $scope.$apply();
         };
-
+      
         $scope.processLogin = function processLogin() {
           console.log("Trying to log in");
           //login('hide');
@@ -135,7 +190,28 @@ if(showhide == "show"){
 
 </form>
 <br />
-
+</div>
+          <div id="popupbox1"> 
+<form ng-submit="searchRemove()">
+<center><h1>Search Results</h1>
+</br></br>
+<table class="table table-striped table-bordered" align=center>
+  <thead>
+    <tr>
+      <th class="span2">Name</th>
+      <th class="span7">Text</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="result in searchResults">
+      <td class="span2" ng-bind="result.name"></td>
+      <td class="span7" ng-bind="result.text"></td>
+    </tr>
+  </tbody>
+</table></center>
+<center><input type="submit" class="span1 btn btn-primary" value="Close"></center>
+</form>
+<br />
 </div> 
 
 
@@ -156,6 +232,14 @@ if(showhide == "show"){
       </div>
       <div class="page-header">
         <h1>Chat Room</h1>
+      </div>
+      <div class="row controls">
+        <form ng-submit="search()">
+          <div class="input-append span12" align='right'>
+            <input type="text" class="span2" ng-model='searchText' placeholder="Search">
+            <input type="submit" class="span1 btn btn-primary" value="Send" ng-disabled="!searchText">
+          </div>
+        </form>
       </div>
       <div class="row">
         <div class="span3">
@@ -184,7 +268,7 @@ if(showhide == "show"){
           <div class="row controls">
             <form ng-submit="send()">
               <div class="span2" ><input type="text" class="input-block-level" ng-model="name" readonly="readonly" placeholder="Your Name"></div>
-              <div class="input-append span7">
+              <div class="input-append span7" align='right'>
                 <input type="text" class="span6" ng-model="text" placeholder="Message">
                 <input type="submit" class="span1 btn btn-primary" value="Send" ng-disabled="!text">
               </div>
