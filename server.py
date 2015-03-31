@@ -13,6 +13,7 @@ socketio = SocketIO(app)
 
 messages = [{'text':'test', 'name':'testName'}]
 users = {}
+currentRoom = "General"
 
 def connectToDB():
   connectionString = 'dbname=chatroom user=postgres password=beatbox host=localhost'
@@ -46,8 +47,12 @@ def test_connect():
     conn = connectToDB()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    query = "SELECT message, username FROM messages join users on (id = user_id)"
-    cur.execute(query)
+    query = "SELECT room_id FROM rooms WHERE name = '%s'"
+    cur.execute(query % currentRoom)
+    roomId = cur.fetchone()
+    
+    query = "SELECT message, username FROM messages join users on (id = user_id) AND room_id = '%s'"
+    cur.execute(query % roomId[0])
     results = cur.fetchall()
 
     messages = []
@@ -59,8 +64,31 @@ def test_connect():
     for message in messages:
         emit('message', message)
 
+@socketio.on('changeRoom', namespace='/chat')
+def changeRoom(room):
+    
+    conn = connectToDB()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    query = "SELECT room_id FROM rooms WHERE name = '%s'"
+    cur.execute(query % room)
+    roomId = cur.fetchone()
+    
+    query = "SELECT message, username FROM messages join users on (id = user_id) AND room_id = '%s'"
+    cur.execute(query % roomId[0])
+    results = cur.fetchall()
+
+    messages = []
+    
+    for result in results:
+        tmp = {'text': result['message'], 'name': result['username']}
+        messages.append(tmp)
+
+    for message in messages:
+        emit('message', message)
+       
 @socketio.on('message', namespace='/chat')
-def new_message(message):
+def new_message(message, room):
     #tmp = {'text':message, 'name':'testName'}
     tmp = {'text':message, 'name':users[session['uuid']]['username']}
     messages.append(tmp)
@@ -69,26 +97,34 @@ def new_message(message):
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
     userId = session['id']
-    
     #Insert new message into database
+    
+    query = "SELECT room_id FROM rooms WHERE name = '%s'"
+    cur.execute(query % room)
+    roomId = cur.fetchone()
+    
     try:
-        query = "INSERT INTO messages (user_id, message) VALUES (%s, %s)"
-        cur.execute(query, (userId, message))
+        query = "INSERT INTO messages (user_id, message, room_id) VALUES (%s, %s, %s)"
+        cur.execute(query, (userId, message, roomId[0]))
     except:
         print("ERROR inserting into messages")
         
     conn.commit()
     
-    emit('message', tmp, broadcast=True)
+    emit('newMessage', tmp, room, broadcast=True)
 
 @socketio.on('search', namespace='/chat')
-def search(searchText):
+def search(searchText, room):
     
     conn = connectToDB()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    query = "SELECT message, username FROM messages join users on (id = user_id) AND message LIKE '%%%s%%'"
-    cur.execute(query % searchText)
+    query = "SELECT room_id FROM rooms WHERE name = '%s'"
+    cur.execute(query % room)
+    roomId = cur.fetchone()
+    
+    query = "SELECT message, username FROM messages join users on (id = user_id) AND room_id = '%s' AND message LIKE '%%%s%%'"
+    cur.execute(query % (roomId[0], searchText))
     results = cur.fetchall()
     
     print "Search Complete"
@@ -142,6 +178,15 @@ def on_login(loginInfo):
         loginMessage = "Login was successful"
         emit('loginCheck', loginMessage, showhide)
         print "Login complete"
+        query = "SELECT r.name FROM permissions AS p join rooms AS r on (p.room_id = r.room_id) AND p.user_id = '%s'"
+        cur.execute(query % results[0])
+        results = cur.fetchall()
+        
+        roomPermissions = []
+        for result in results:
+            roomPermissions.append(result['name'])
+            
+        emit('permissions', roomPermissions)
     else:
         loginMessage = "The login information was incorect"
         showhide = "show"

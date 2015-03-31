@@ -77,9 +77,11 @@ if(showhide == "show"){
 
         $scope.messages = [];
         $scope.roster = [];
+        $scope.rooms = ["General", "Beatboxing", "Programming"]
         $scope.name = '';
         $scope.text = '';
         $scope.searchText = '';
+        $scope.currentRoom = '';
         $scope.searchResults = [];
 
         socket.on('connect', function () {
@@ -93,6 +95,14 @@ if(showhide == "show"){
           $scope.$apply();
         });
         
+        socket.on('newMessage', function (msg, cRoom) {
+          console.log(msg);
+          if ($scope.currentRoom == cRoom){
+            $scope.messages.push(msg);
+            $scope.$apply();
+          }
+        });
+        
         //This is like the message function used to append search results to a list. 
         socket.on('searchResult', function (searchResult) {
           console.log(searchResult);
@@ -104,43 +114,56 @@ if(showhide == "show"){
         socket.on('loginCheck', function (loginMessage, showhide) {
           console.log(loginMessage);
           if (showhide == "show"){
-            //errorMessage = loginMessage
-            login("show")
+            login("show");
           }
           else if (showhide == "hide"){
-            //errorMessage = "";
-            login("hide")
+            login("hide");
           }
           $scope.$apply();
         });
 
         socket.on('roster', function (names) {
-          console.log("Roster update:" +JSON.stringify(names))
+          console.log("Roster update:" +JSON.stringify(names));
           $scope.roster = names;
           $scope.$apply();
         });
+        
+        socket.on('permissions', function(permissionsRooms) {
+          console.log("Setting permissions");
+          $scope.rooms = permissionsRooms;
+          $scope.$apply();
+        });
+        
 
         // This is used to search.
         $scope.search = function search() {
           console.log('Searching for: ', $scope.searchText);
-          socket.emit('search', $scope.searchText);
+          socket.emit('search', $scope.searchText, $scope.currentRoom);
           $scope.searchText = '';
-          searchPopUp('show')
+          searchPopUp('show');
+          $scope.$apply();
+        };
+        
+        //This is used to change rooms
+        $scope.changeRoom = function changeRoom(room){
+          console.log('Setting room to: ', room);
+          socket.emit('changeRoom', room);
+          $scope.currentRoom = room;
+          $scope.messages = [];
           $scope.$apply();
         };
 
         // This is used to get rid of the popup and clear search results.
         $scope.searchRemove = function searchRemove() {
           console.log('Clearing search results');
-          searchPopUp('hide')
+          searchPopUp('hide');
           $scope.searchResults = [];
           $scope.$apply();
         };
-
         
         $scope.send = function send() {
           console.log('Sending message:', $scope.text);
-          socket.emit('message', $scope.text);
+          socket.emit('message', $scope.text, $scope.currentRoom);
           $scope.text = '';
         };
 
@@ -157,6 +180,7 @@ if(showhide == "show"){
         $scope.processLogin = function processLogin() {
           console.log("Trying to log in");
           //login('hide');
+          $scope.currentRoom = 'General'
           socket.emit('login', {'username': $scope.name, 'password': $scope.password});
         };
 
@@ -243,6 +267,13 @@ if(showhide == "show"){
       </div>
       <div class="row">
         <div class="span3">
+          <ul class="nav nav-list well">
+            <li class="nav-header">Rooms</li>
+            <li ng-repeat="room in rooms">
+              <input type="radio" name="room1" value="room" ng-click="changeRoom(room)">  {{room}}<br>
+            </li>
+          </ul>
+          </br>
           <ul class="nav nav-list well">
             <li class="nav-header">Local Users</li>
             <li ng-repeat="user in roster" ng-bind="user">
