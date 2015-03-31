@@ -171,6 +171,23 @@ COPY permissions (user_id, room_id) FROM stdin;
 2	3
 3	1
 3	2
+4	1
+5	1
+6	1
+7	1
+8	1
+9	1
+10	1
+10	2
+10	3
+9	3
+8	2
+7	2
+7	3
+6	2
+5	3
+4	2
+4	3
 \.
 
 
@@ -200,6 +217,13 @@ COPY users (id, username, password) FROM stdin;
 1	Cassie	$2a$06$IgEfG9kCyqEMMIGX4HoHGexUSjTrioUuWJMfXJShaaIVP7UU.VdKe
 2	Tyler	$2a$06$DAJPECq5POmoQxVJT25Us.nbwMrytJJm.UfiBe01FrS1ioHbrjgEO
 3	Bob	$2a$06$wmh1FxAajBCn06s/tMkmlO8Nv.D.vN8RY70vC79vIWTCdmsUJ1IBu
+4	Henry	$2a$06$pisqMB0LKSGFqYjWEoOGEuASi4mozG1f7QLBZrpKgMxtwScYGP28m
+5	Thomas	$2a$06$WBEqDtv1GzjX6w.IE3C8A.OwNPdVGI.h.vb.GXP81NudaDW8CN4cS
+6	Shehan	$2a$06$sQbj0RGfh3KC8Nx.RQRwP.cnTQbZjY.CKRhRWrDKmCRHEU7JoMubK
+7	Gusty	$2a$06$i6WY/it.TCwozhhm/ciExuk7wFbnkdTz3S4KISlDpj1tuQh.87Sj2
+8	Sepehr	$2a$06$mvMs8zP75CwvNzh.PpdDhO3OmCSe2HywJGZlXSwQB2Yv5KUSCBo9G
+9	Jake	$2a$06$o9T5ekVNtaPYguDo6mg5BuQv5E8PhcDMo5RlOV8iMPupGEI0ErQoS
+10	Alex	$2a$06$EWuHQcbui6FhFXQ2gwEafO3OVlkJwUb1NrmwmaT8/W.TjM6CV5GbO
 \.
 
 
@@ -207,7 +231,7 @@ COPY users (id, username, password) FROM stdin;
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('users_id_seq', 3, true);
+SELECT pg_catalog.setval('users_id_seq', 10, true);
 
 
 --
